@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 #define INT_BITS (sizeof(int) * 8)
-#define SIGN_BIT (1U << (INT_BITS - 1));
+#define SIGN_BIT (1U << (INT_BITS - 1))
 
 typedef struct RealNumber {
     int firstDigit;
@@ -40,6 +40,13 @@ void setNumberSign(RealNumber *number, unsigned int sign) {
     else if (sign == 1) {
         number->firstDigit &= ~SIGN_BIT;
     }
+}
+
+int getNumberSign(RealNumber *number) {
+    if (number == NULL) {
+        return 2;
+    }
+    return (number->firstDigit & SIGN_BIT) ? 1 : 0;
 }
 
 //Assign value to RealNumber struct (user input from console)
@@ -112,14 +119,32 @@ RealNumber *copyNumber(RealNumber *number) {
     return copy;
 }
 
-//Sum of two BigInts with result in first number
-int sumNumberWithoutCopy(RealNumber *number1, RealNumber *number2) {
-    if (number1 == NULL || number2 == NULL) {
+//Trim leading zeroes in BigInt
+int normalizeNumber(RealNumber *number) {
+    if (number == NULL) {
         return 1;
+    }
+    if (number->digits == NULL) {
+        return 1;
+    }
+    if (number->firstDigit == 0 && number->digits[0] == 1) {
+        return 0;
+    }
+}
+
+//Sum of two BigInts with result in first number
+void sumNumberWithoutCopy(RealNumber *number1, RealNumber *number2) {
+    if (number1 == NULL || number2 == NULL) {
+        return;
     }
     if (number1->digits == NULL || number2->digits == NULL) {
-        return 1;
+        return;
     }
+    unsigned int carry = 0;
+    unsigned int len1 = number1->digits[0];
+    unsigned int len2 = number2->digits[0];
+    unsigned int sign1 = getNumberSign(number1);
+    unsigned int sign2 = getNumberSign(number2);
 }
 
 

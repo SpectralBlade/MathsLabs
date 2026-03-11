@@ -173,7 +173,7 @@ int normalizeNumber(RealNumber *number) {
     return 0;
 }
 
-//Summary of two abs'es
+//Sum of two abs'es
 void addAbsolute(RealNumber *a, RealNumber *b) {
     unsigned int lenA = a->digits[0];
     unsigned int lenB = b->digits[0];
@@ -198,7 +198,7 @@ void addAbsolute(RealNumber *a, RealNumber *b) {
     }
 }
 
-//Substraction of to abs'es
+//Substraction of two abs'es
 void subAbsolute(RealNumber *a, RealNumber *b) {
     unsigned int lenA = a->digits[0];
     unsigned int lenB = b->digits[0];
@@ -248,6 +248,48 @@ void sumNumberWithoutCopy(RealNumber *number1, RealNumber *number2) {
     }
 }
 
+//Sum of two BigInts with result in the new BigInt
+RealNumber *sumNumberWithCopy(RealNumber *number1, RealNumber *number2) {
+    if (number1 == NULL || number2 == NULL) {
+        return NULL;
+    }
+
+    RealNumber *result = copyNumber(number1);
+    if (result == NULL) {
+        return NULL;
+    }
+
+    sumNumberWithoutCopy(result, number2);
+    return result;
+}
+
+//Substraction of two BigInts with result in the first number
+void subNumberWithoutCopy(RealNumber *number1, RealNumber *number2) {
+    if (number1 == NULL || number2 == NULL) {
+        return;
+    }
+
+    int originalSign2 = getNumberSign(number2);
+    setNumberSign(number2, originalSign2 == 0 ? 1 : 0);
+
+    sumNumberWithoutCopy(number1, number2);
+    setNumberSign(number2, originalSign2);
+}
+
+//Substraction of two BigInts with result in the new BigInt
+RealNumber *subNumberWithCopy(RealNumber *number1, RealNumber *number2) {
+    if (number1 == NULL || number2 == NULL) {
+        return NULL;
+    }
+
+    RealNumber *result = copyNumber(number1);
+    if (result == NULL) {
+        return NULL;
+    }
+
+    subNumberWithoutCopy(result, number2);
+    return result;
+}
 
 unsigned int LoWord(unsigned int value) {
     return value & (1 << (sizeof(unsigned int) << 2)) - 1;

@@ -291,6 +291,80 @@ RealNumber *subNumberWithCopy(RealNumber *number1, RealNumber *number2) {
     return result;
 }
 
+//Multiply of two BigInts with result in the first number
+void multiplyNumberWithoutCopy(RealNumber *number1, RealNumber *number2) {
+    if (number1 == NULL || number2 == NULL) {
+        return;
+    }
+
+    int sign1 = getNumberSign(number1);
+    int sign2 = getNumberSign(number2);
+    int resultSign = (sign1 == sign2) ? 0 : 1;
+
+
+    unsigned int len1 = (number1->digits ? number1->digits[0] : 0) + 1;
+    unsigned int len2 = (number2->digits ? number2->digits[0] : 0) + 1;
+
+    unsigned int *A = (unsigned int*)malloc(len1 * sizeof(unsigned int));
+    unsigned int *B = (unsigned int*)malloc(len2 * sizeof(unsigned int));
+
+    for(int i = 0; i < len1 - 1; i++) A[i] = number1->digits[i+1];
+    A[len1-1] = number1->firstDigit & ~SIGN_BIT;
+
+    for(int i = 0; i < len2 - 1; i++) B[i] = number2->digits[i+1];
+    B[len2-1] = number2->firstDigit & ~SIGN_BIT;
+
+    unsigned int resLen = len1 + len2;
+    unsigned int *resDigits = (unsigned int*)calloc(resLen, sizeof(unsigned int));
+
+    for (unsigned int i = 0; i < len1; i++) {
+        unsigned long long carry = 0;
+        for (unsigned int j = 0; j < len2; j++) {
+            unsigned long long cur = resDigits[i + j] +
+                                     A[i] * 1ULL * B[j] + carry;
+            resDigits[i + j] = (unsigned int)(cur & 0xFFFFFFFF);
+            carry = cur >> 32;
+        }
+        resDigits[i + len2] += (unsigned int)carry;
+    }
+
+    int actualLen = resLen;
+    while (actualLen > 1 && resDigits[actualLen - 1] == 0) actualLen--;
+
+    number1->firstDigit = (int)resDigits[actualLen - 1];
+    setNumberSign(number1, resultSign);
+
+    if (actualLen > 1) {
+        unsigned int *newDigits = (unsigned int*)realloc(number1->digits, actualLen * sizeof(unsigned int));
+        if (newDigits) {
+            number1->digits = newDigits;
+            number1->digits[0] = actualLen - 1;
+            for (int i = 1; i < actualLen; i++) {
+                number1->digits[i] = resDigits[i - 1];
+            }
+        }
+    } else {
+        free(number1->digits);
+        number1->digits = NULL;
+    }
+    free(A); free(B); free(resDigits);
+}
+
+//Multiply two BigInts with result in the new BigInt
+RealNumber* multiplyNumberWithCopy(RealNumber *number1, RealNumber *number2) {
+    if (number1 == NULL || number2 == NULL) {
+        return NULL;
+    }
+
+    RealNumber* result = copyNumber(number1);
+    if (result == NULL) {
+        return NULL;
+    }
+
+    multiplyNumberWithCopy(result, number2);
+    return result;
+}
+
 unsigned int LoWord(unsigned int value) {
     return value & (1 << (sizeof(unsigned int) << 2)) - 1;
 }

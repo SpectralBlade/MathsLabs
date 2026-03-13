@@ -221,7 +221,9 @@ void subAbsolute(RealNumber *a, RealNumber *b) {
 
 //Sum of two BigInts with result in first number
 void sumNumberWithoutCopy(RealNumber *number1, RealNumber *number2) {
-    if (!number1 || !number2) return;
+    if (!number1 || !number2) {
+        return;
+    }
 
     int sign1 = getNumberSign(number1);
     int sign2 = getNumberSign(number2);
@@ -363,6 +365,146 @@ RealNumber* multiplyNumberWithCopy(RealNumber *number1, RealNumber *number2) {
 
     multiplyNumberWithCopy(result, number2);
     return result;
+}
+
+//Shifting number left on k digits (adding k zeroes in node in the beginning)
+void shiftLeft(RealNumber *a, unsigned int k) {
+    if (k == 0) return;
+    unsigned int oldLen = a->digits ? a->digits[0] : 0;
+    unsigned int newLen = oldLen + k;
+
+    unsigned int *newData = (unsigned int*)calloc(newLen + 1, sizeof(unsigned int));
+    newData[0] = newLen;
+
+    for (unsigned int i = 1; i <= oldLen; i++) {
+        newData[i + k] = a->digits[i];
+    }
+
+    free(a->digits);
+    a->digits = newData;
+}
+
+//Gets the first m digits of the number in Little Endian order
+RealNumber *getLowerPart(RealNumber *number, unsigned int m) {
+    if (number == NULL || m <= 0) {
+        return NULL;
+    }
+
+    RealNumber *lower = initNumber();
+    if (lower == NULL) {
+        return NULL;
+    }
+
+    lower->firstDigit = (int)number->digits[m];
+    setNumberSign(lower, 0);
+
+    if (m > 1) {
+        lower->digits = (unsigned int*)malloc(m * sizeof(unsigned int));
+        if (lower->digits == NULL) {
+            free(lower);
+            return NULL;
+        }
+        lower->digits[0] = m - 1;
+        for (int i = 1; i < m; i++) {
+            lower->digits[i] = number->digits[i];
+        }
+    }
+    return lower;
+}
+
+//Gets the last m digits of BigInt (including firstDigit) in Little Endian order
+RealNumber *getUpperPart(RealNumber *number, unsigned int m) {
+    if (number == NULL) {
+        return NULL;
+    }
+
+    unsigned int totalDigits = (number->digits ? number->digits[0] : 0) + 1;
+    if (m >= totalDigits) {
+        RealNumber *zero = initNumber();
+        zero->firstDigit = 0;
+        return zero;
+    }
+
+    RealNumber *upper = initNumber();
+    if (upper == NULL) {
+        return NULL;
+    }
+
+    upper->firstDigit = number->firstDigit;
+    setNumberSign(upper, 0);
+
+    unsigned int newDigitsCount = totalDigits - m - 1;
+
+    if (newDigitsCount > 0) {
+        upper->digits = (unsigned int*)malloc((newDigitsCount + 1) * sizeof(unsigned int));
+        if (upper->digits == NULL) {
+            free(upper);
+            return NULL;
+        }
+        upper->digits[0] = newDigitsCount;
+        for (unsigned int i = 1; i <= newDigitsCount; i++) {
+            upper->digits[i] = number->digits[m + i];
+        }
+    }
+    return upper;
+}
+
+//Karatsuba algorithm with result in new BigInt
+RealNumber *karatsubaRecursiveWithCopy(RealNumber *a, RealNumber *b) {
+    if (a == NULL || b == NULL) {
+        return NULL;
+    }
+    unsigned int n1 = (a->digits ? a->digits[0] : 0) + 1;
+    unsigned int n2 = (b->digits ? b->digits[0] : 0) + 1;
+    unsigned int n = (n1 > n2) ? n1 : n2;
+
+    if (n <= 2) {
+        RealNumber *res = copyNumber(a);
+        multiplyNumberWithoutCopy(res, b);
+        return res;
+    }
+
+    unsigned int m = n / 2;
+
+    RealNumber *a0 = getLowerPart(a, m);
+    RealNumber *a1 = getUpperPart(a, m);
+    RealNumber *b0 = getLowerPart(b, m);
+    RealNumber *b1 = getUpperPart(b, m);
+
+    RealNumber *p1 = karatsubaRecursiveWithCopy(a1, b1);
+    RealNumber *p2 = karatsubaRecursiveWithCopy(a0, b0);
+
+    RealNumber *sumA = sumNumberWithCopy(a1, a0);
+    RealNumber *sumB = sumNumberWithCopy(b1, b0);
+    RealNumber *p3 = karatsubaRecursiveWithCopy(sumA, sumB);
+
+    subNumberWithoutCopy(p3, p1);
+    subNumberWithoutCopy(p3, p2);
+
+    shiftLeft(p1, 2 * m);
+    shiftLeft(p3, m);
+
+    sumNumberWithoutCopy(p1, p3);
+    sumNumberWithoutCopy(p1, p2);
+
+    deinitNumber(p2); deinitNumber(p3); deinitNumber(a1);
+    deinitNumber(a0); deinitNumber(b0); deinitNumber(b1);
+    deinitNumber(sumA); deinitNumber(sumB);
+
+    return p1;
+}
+
+//Karatsuba algorithm with result in first number
+void karatsubaRecursiveWithoutCopy(RealNumber *a, RealNumber *b) {
+    if (a == NULL || b == NULL) {
+        return;
+    }
+    RealNumber *res = karatsubaRecursiveWithCopy(a, b);
+    a->firstDigit = res->firstDigit;
+    for (unsigned int i = 1; i <= res->digits[0]; i++) {
+        a->digits[i] = res->digits[i];
+    }
+    deinitNumber(res);
 }
 
 unsigned int LoWord(unsigned int value) {
